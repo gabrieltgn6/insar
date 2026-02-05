@@ -172,7 +172,7 @@ pauli_l = np.sqrt(np.abs(pauli1)**2 + np.abs(pauli2)**2 + np.abs(pauli3)**2)
 
 # --- compute alpha angle [rad]
 # TODO: Complete
-alpha = np.arccos(np.abs(pauli1)/pauli_l)
+
 
 # plots
 """
@@ -198,19 +198,42 @@ VH = VH[crop_az[0]:crop_az[1], :]
 VV = VV[crop_az[0]:crop_az[1], :]
 
 """
+def HSV_colormap_to_rgb(colormap, h, s, v):
+    """
+    Convierte parámetros H, S, V a RGB, ajustando automáticamente
+    las dimensiones si provienen de datos recortados o multilooked.
+    """
+    # 1. Obtener los colores base del colormap
+    # colormap(h) devuelve (Filas_h, Cols_h, 4)
+    base_rgb = colormap(h)[..., :3]
+    
+    # 2. Sincronizar dimensiones
+    # Si 'base_rgb' es más grande que 'v', lo recortamos para que coincida
+    if base_rgb.shape[:2] != v.shape[:2]:
+        base_rgb = base_rgb[:v.shape[0], :v.shape[1], :]
+        s_fixed = s[:v.shape[0], :v.shape[1]]
+    else:
+        s_fixed = s
 
-
+    # 3. Lógica HSV a RGB (Linear Interpolation)
+    # tmp = Blanco * (1-s) + Color * s
+    tmp = (1 - s_fixed)[..., np.newaxis] + s_fixed[..., np.newaxis] * base_rgb
+    
+    # 4. Escalar por el valor (V) y asegurar que v tenga el eje extra
+    if v.ndim == 2:
+        v = v[..., np.newaxis]
+        
+    return v * tmp
 
 #HH.shape
 
 # --- calculate Pauli elements
 # TODO: Complete
-pauli1 = (HH+HV)/np.sqrt(2)
-pauli2 = (HH-HV)/np.sqrt(2)
+pauli1 = (HH+VV)/np.sqrt(2)
+pauli2 = (HH-VV)/np.sqrt(2)
 pauli3 = (VH+HV)/np.sqrt(2)
 # Delete original SLCs to save memory
 #del HH, VV, HV, VH
-print("ok")
 # Join Pauli elements into Pauli scattering vector w_p
 wp = np.dstack((pauli1, pauli2, pauli3))
 
@@ -265,6 +288,104 @@ entropy = - ( pr1*np.log10(pr1)/np.log10(3) + pr2*np.log10(pr2)/np.log10(3) + pr
 # TODO: Complete
 anisotropy = (lambda2-lambda3) / (lambda2+lambda3)
 
+# Note that np.linalg.eigh returns the eigenvectors ordered in ascending order --> U1 corresponding to lambda_1 is the last one
+U1 = V[:, :, :, 2]
+U2 = V[:, :, :, 1]
+U3 = V[:, :, :, 0]
+
+alpha1 = np.arccos(np.abs(U1[:,:,0]))
+alpha2 = np.arccos(np.abs(U2[:,:,0]))
+alpha3 = np.arccos(np.abs(U3[:,:,0]))
+
+
+# calculate the mean alpha angle
+# TODO: Complete
+alpha = (pr1*alpha1 + pr2*alpha2 + pr3*alpha3) 
+alpha = alpha * 180/np.pi   # [deg]
+
+alpha1= (alpha1*180)/np.pi
+alpha2 = (alpha2*180)/np.pi
+alpha3 = (alpha3*180)/np.pi
+
+### HSV representation of H/alpha
+
+colormap = plt.colormaps.get('jet')
+
+# Normalize the alpha into 0 to 1
+alpha = alpha / 90
+
+# Intensity : amp
+amp = np.sqrt(np.abs(T11) + np.abs(T22) + np.abs(T33))
+amp = np.clip(amp, 0, 2.5*np.mean(amp))
+amp = amp /np.max(amp)
+
+# First case: take saturation = 1
+saturation = np.ones_like(alpha)
+rgb_alpha = HSV_colormap_to_rgb(colormap, alpha, saturation, amp)
+
+# Second case: take saturation = 1 - entropy 
+saturation = 1 - entropy
+rgb_Halpha = HSV_colormap_to_rgb(colormap, alpha, saturation, amp)
+
+# Plots
+#hsv
+plt.figure(figsize = (8, 12))
+ax=plt.subplot(2,1,1)
+ax.set_title("RGB Alpha")
+plt.imshow((rgb_alpha), aspect = 'auto', interpolation = 'nearest')
+ax=plt.subplot(2,1,2)
+ax.set_title("RGB Halpha")
+plt.imshow((rgb_Halpha), aspect = 'auto', interpolation = 'nearest')
+plt.tight_layout()
+plt.show()
+
+
+plt.figure(figsize=(10,12))
+ax = plt.subplot(1,1,1)
+ax.set_title("RGB Pauli")
+plt.imshow(iRGBPauli, aspect='auto')
+plt.colorbar() # dummy colorbar to align images
+plt.tight_layout()
+plt.show()
+
+# -- plot alpha1, alpha2, alpha3
+
+plt.figure(figsize = (10, 12))
+
+ax = plt.subplot(3,1,1)
+plt.imshow((alpha1) , vmin = 0 , vmax = 90, cmap = 'jet', aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+ax.set_title("alpha1")
+
+ax = plt.subplot(3,1,2)
+plt.imshow((alpha2) , vmin = 0 , vmax = 90, cmap = 'jet', aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+ax.set_title("alpha2")
+
+ax = plt.subplot(3,1,3)
+plt.imshow((alpha3) , vmin = 0 , vmax = 90, cmap = 'jet', aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+ax.set_title("alpha3")
+
+plt.tight_layout()
+
+plt.figure(figsize=(10,12))
+ax = plt.subplot(3,1,1)
+plt.imshow((entropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+ax.set_title("Entropy H")
+ax = plt.subplot(3,1,2)
+plt.imshow((alpha) * 180/np.pi , cmap = 'jet', vmin = 0, vmax = 90, aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+ax.set_title("Mean Alpha angle")
+ax = plt.subplot(3,1,3)
+plt.imshow((anisotropy)  , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+ax.set_title("Anisotropy")
+plt.tight_layout()
+plt.show()
+
+
 """
 plt.figure(figsize=(12, 16))
 
@@ -296,5 +417,3 @@ plt.colorbar(im4, ax=ax4)
 plt.tight_layout()
 plt.show()
 """
-
-
