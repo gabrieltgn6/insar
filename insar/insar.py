@@ -182,33 +182,28 @@ plt.show()
 # -------- PART 3 -----------
 
 
+# --- calculate Pauli elements
+# TODO: Complete
+pauli1 = (HH+HV)/np.sqrt(2)
+pauli2 = (HH-HV)/np.sqrt(2)
+pauli3 = (VH+HV)/np.sqrt(2)
+# Delete original SLCs to save memory
+#del HH, VV, HV, VH
+print("ok")
 # Join Pauli elements into Pauli scattering vector w_p
 wp = np.dstack((pauli1, pauli2, pauli3))
 
 # w_p is a 3 element vector for each pixel
 wp.shape
 
-
-
-
 # Compute coherency matrix T3 as the outer product of w_p with w_p.conj()
 T3 = np.einsum('...i,...j->...ij', wp, wp.conj())
 
 # Delete wp to save memory
-del wp
+#del wp
 
 # T3 is a 3 by 3 matrix for each pixel
 T3.shape
-
-rows, cols = T3.shape[:2]
-W = np.zeros((rows, cols, 3), dtype=np.float32)
-V = np.zeros((rows, cols, 3, 3), dtype=np.complex64)
-
-for i in range(rows):
-    for j in range(cols):
-        w, v = np.linalg.eigh(T3[i, j, :, :])
-        W[i, j, :] = w      # eigenvalues
-        V[i, j, :, :] = v   # eigenvectors
 
 # Number of pixels to average in azimuth and range for the Multilook
 looksa = 19
@@ -218,10 +213,6 @@ looksr = 3
 T3 = uniform_filter(T3, (looksa, looksr, 1, 1))
 
 T3.shape
-
-# Check that T3 matrix is Hermitian
-np.set_printoptions(precision=3)
-T3[0,0,:,:]
 
 # Perform eigendecomposition of T3 (hermitian) matrix
 W, V = np.linalg.eigh(T3)
@@ -236,6 +227,9 @@ lambda1 = W[:, :, 2]
 lambda2 = W[:, :, 1] 
 lambda3 = W[:, :, 0]
 
+lambda1.shape
+
+
 # --- Compute probabilities
 # TODO: Complete
 pr1 = lambda1 / (lambda1 + lambda2 + lambda3)
@@ -245,73 +239,3 @@ pr3 = lambda3 / (lambda1 + lambda2 + lambda3)
 
 # --- Compute entropy
 entropy = - ( pr1*np.log10(pr1)/np.log10(3) + pr2*np.log10(pr2)/np.log10(3) + pr3*np.log10(pr3)/np.log10(3) )
-"""
-
-# TODO: Complete
-anisotropy = (lambda2-lambda3) / (lambda2+lambda3)
-
-# Note that np.linalg.eigh returns the eigenvectors ordered in ascending order --> U1 corresponding to lambda_1 is the last one
-U1 = V[:, :, :, 2]
-U2 = V[:, :, :, 1]
-U3 = V[:, :, :, 0]
-
-U1.shape
-# extract alpha angles
-
-alpha1 = np.arccos(np.abs(U1[:,:,0]))
-alpha2 = np.arccos(np.abs(U2[:,:,0]))
-alpha3 = np.arccos(np.abs(U3[:,:,0]))
-
-# calculate the mean alpha angle
-# TODO: Complete
-alpha = (pr1*alpha1 + pr2*alpha2 + pr3*alpha3) 
-alpha = alpha * 180/np.pi   # [deg]
-
-# -- Generate Pauli RGB from coherency matrix diagonal elements
-# NOTE: square root applied to convert intensities to amplitudes for visualization
-# NOTE: the ordering of channels R, G, B --> Pauli 2, Pauli 3, Pauli 1
-naz = pauli1.shape[0]
-nrg = pauli1.shape[1]
-pauli_rgb = np.zeros((nrg, naz, 3), 'float32')
-
-T11 = T3[:, :, 0, 0]
-T22 = T3[:, :, 1, 1]
-T33 = T3[:, :, 2, 2]
-pauli_rgb[:,:,0] = np.clip(np.transpose(np.sqrt(np.abs(T22))), 0, 2.5*np.mean(np.sqrt(np.abs(T22)))) 
-pauli_rgb[:,:,1] = np.clip(np.transpose(np.sqrt(np.abs(T33))), 0, 2.5*np.mean(np.sqrt(np.abs(T33)))) 
-pauli_rgb[:,:,2] = np.clip(np.transpose(np.sqrt(np.abs(T11))), 0, 2.5*np.mean(np.sqrt(np.abs(T11)))) 
-
-pauli_rgb[:,:,0] = pauli_rgb[:,:,0] / np.max(pauli_rgb[:,:,0]) 
-pauli_rgb[:,:,1] = pauli_rgb[:,:,1] / np.max(pauli_rgb[:,:,1]) 
-pauli_rgb[:,:,2] = pauli_rgb[:,:,2] / np.max(pauli_rgb[:,:,2]) 
-
-# Plot of entropy / mean alpha / anistropy
-
-plt.figure(figsize = (10, 6*3))
-ax = plt.subplot(3,1,1)
-plt.imshow(np.transpose(entropy), vmin = 0, vmax = 1, cmap = 'jet', aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
-ax.set_title('Entropy H')
-
-ax = plt.subplot(3,1,2)
-plt.imshow(np.transpose(alpha), vmin = 0, vmax = 90, cmap = 'jet', aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
-ax.set_title('Mean alpha angle')
-
-ax = plt.subplot(3,1,3)
-plt.imshow(np.transpose(anisotropy), vmin = 0, vmax = 1, cmap = 'jet', aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
-ax.set_title('Anisotropy')
-
-plt.tight_layout()
-"""
-
-plt.figure(figsize=(10,12))
-plt.subplot(2,1,1)
-plt.imshow(iRGBPauli, aspect='auto')
-plt.colorbar() # dummy colorbar to align images
-plt.subplot(2,1,2)
-plt.imshow((entropy) * 180/np.pi , cmap = 'jet', vmin = 0, vmax = 90, aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
-plt.tight_layout()
-plt.show()
