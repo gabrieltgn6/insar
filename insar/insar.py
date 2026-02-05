@@ -182,6 +182,15 @@ plt.show()
 # -------- PART 3 -----------
 
 
+# Crop images in azimuth
+crop_az = (6000, 12000)
+HH = HH[crop_az[0]:crop_az[1], :]
+HV = HV[crop_az[0]:crop_az[1], :]
+VH = VH[crop_az[0]:crop_az[1], :]
+VV = VV[crop_az[0]:crop_az[1], :]
+
+#HH.shape
+
 # --- calculate Pauli elements
 # TODO: Complete
 pauli1 = (HH+HV)/np.sqrt(2)
@@ -239,3 +248,16 @@ pr3 = lambda3 / (lambda1 + lambda2 + lambda3)
 
 # --- Compute entropy
 entropy = - ( pr1*np.log10(pr1)/np.log10(3) + pr2*np.log10(pr2)/np.log10(3) + pr3*np.log10(pr3)/np.log10(3) )
+
+plt.figure(figsize=(10,12))
+plt.subplot(3,1,1)
+plt.imshow(iRGBPauli, aspect='auto')
+plt.colorbar() # dummy colorbar to align images
+plt.subplot(3,1,2)
+plt.imshow((alpha) * 180/np.pi , cmap = 'jet', vmin = 0, vmax = 90, aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+plt.subplot(3,1,3)
+plt.imshow((entropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+plt.tight_layout()
+plt.show()
