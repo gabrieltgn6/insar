@@ -39,6 +39,13 @@ HV = hv_abs * np.exp(1j*hv_phase)
 VH = vh_abs * np.exp(1j*vh_phase)
 VV = vv_abs * np.exp(1j*vv_phase)
 
+# Crop images in azimuth
+crop_az = (6000, 12000)
+HH = HH[crop_az[0]:crop_az[1], :]
+HV = HV[crop_az[0]:crop_az[1], :]
+VH = VH[crop_az[0]:crop_az[1], :]
+VV = VV[crop_az[0]:crop_az[1], :]
+
 from scipy import signal
 win = [11, 3]
 
@@ -89,7 +96,7 @@ iRGBPauli[:,:,0] = T22/(T22.mean()*1.5)
 iRGBPauli[:,:,1] = T33/(T33.mean()*1.5)
 iRGBPauli[:,:,2] = T11/(T11.mean()*1.5)
 iRGBPauli[np.abs(iRGBPauli) > 1] = 1
-
+"""
 # path_out = str(path_save) + '/RGB_Pauli_full_' + flag_image
 # Example: take only every 10th pixel in each dimension
 #iRGBPauli_small = iRGBPauli[::10, ::10, :]
@@ -118,7 +125,7 @@ ax.tick_params(axis='both', which='major', labelsize=10)
 
 
 plt.show()
-
+"""
 # fig.savefig(path_out, bbox_inches='tight', pad_inches=0)
 
 ### ---------------PART 2 --------------
@@ -168,7 +175,7 @@ pauli_l = np.sqrt(np.abs(pauli1)**2 + np.abs(pauli2)**2 + np.abs(pauli3)**2)
 alpha = np.arccos(np.abs(pauli1)/pauli_l)
 
 # plots
-
+"""
 plt.figure(figsize=(10,12))
 plt.subplot(2,1,1)
 plt.imshow(iRGBPauli, aspect='auto')
@@ -178,9 +185,10 @@ plt.imshow((alpha) * 180/np.pi , cmap = 'jet', vmin = 0, vmax = 90, aspect = 'au
 plt.colorbar()
 plt.tight_layout()
 plt.show()
+"""
 
 # -------- PART 3 -----------
-
+"""
 
 # Crop images in azimuth
 crop_az = (6000, 12000)
@@ -188,6 +196,10 @@ HH = HH[crop_az[0]:crop_az[1], :]
 HV = HV[crop_az[0]:crop_az[1], :]
 VH = VH[crop_az[0]:crop_az[1], :]
 VV = VV[crop_az[0]:crop_az[1], :]
+
+"""
+
+
 
 #HH.shape
 
@@ -253,19 +265,36 @@ entropy = - ( pr1*np.log10(pr1)/np.log10(3) + pr2*np.log10(pr2)/np.log10(3) + pr
 # TODO: Complete
 anisotropy = (lambda2-lambda3) / (lambda2+lambda3)
 
+"""
+plt.figure(figsize=(12, 16))
 
-plt.figure(figsize=(10,12))
-plt.subplot(4,1,1)
-plt.imshow(iRGBPauli, aspect='auto')
-plt.colorbar() # dummy colorbar to align images
-plt.subplot(4,1,2)
-plt.imshow((alpha) * 180/np.pi , cmap = 'jet', vmin = 0, vmax = 90, aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
-plt.subplot(4,2,1)
-plt.imshow((entropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
-plt.subplot(4,2,2)
-plt.imshow((anisotropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
-plt.colorbar()
+# Imagen 1: Pauli (Ocupa toda la fila 1)
+ax1 = plt.subplot(4, 2, (1, 2)) # El rango (1, 2) une las dos columnas
+plt.imshow(iRGBPauli, aspect='equal') 
+plt.title("Pauli RGB")
+# Para que el colorbar no mueva el tamaño de la imagen, usamos un ScalarMappable
+plt.colorbar(plt.cm.ScalarMappable(), ax=ax1, label='RGB Composite')
+
+# Imagen 2: Alpha (Ocupa toda la fila 2)
+ax2 = plt.subplot(4, 2, (3, 4))
+im2 = plt.imshow(alpha * 180/np.pi, cmap='jet', vmin=0, vmax=90, aspect='equal', interpolation='nearest')
+plt.title(r"$\alpha$ (Alpha Angle)")
+plt.colorbar(im2, ax=ax2, label='Degrees')
+
+# Imagen 3: Entropy (Fila 3, Columna 1)
+ax3 = plt.subplot(4, 2, 5)
+im3 = plt.imshow(entropy, cmap='jet', vmin=0, vmax=1, aspect='equal', interpolation='nearest')
+plt.title("Entropy")
+plt.colorbar(im3, ax=ax3)
+
+# Imagen 4: Anisotropy (Fila 3, Columna 2)
+ax4 = plt.subplot(4, 2, 6)
+im4 = plt.imshow(anisotropy, cmap='jet', vmin=0, vmax=1, aspect='equal', interpolation='nearest')
+plt.title("Anisotropy")
+plt.colorbar(im4, ax=ax4)
+
 plt.tight_layout()
 plt.show()
+"""
+
+
