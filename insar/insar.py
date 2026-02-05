@@ -249,15 +249,23 @@ pr3 = lambda3 / (lambda1 + lambda2 + lambda3)
 # --- Compute entropy
 entropy = - ( pr1*np.log10(pr1)/np.log10(3) + pr2*np.log10(pr2)/np.log10(3) + pr3*np.log10(pr3)/np.log10(3) )
 
+
+# TODO: Complete
+anisotropy = (lambda2-lambda3) / (lambda2+lambda3)
+
+
 plt.figure(figsize=(10,12))
-plt.subplot(3,1,1)
+plt.subplot(4,1,1)
 plt.imshow(iRGBPauli, aspect='auto')
 plt.colorbar() # dummy colorbar to align images
-plt.subplot(3,1,2)
+plt.subplot(4,1,2)
 plt.imshow((alpha) * 180/np.pi , cmap = 'jet', vmin = 0, vmax = 90, aspect = 'auto', interpolation = 'nearest')
 plt.colorbar()
-plt.subplot(3,1,3)
+plt.subplot(4,2,1)
 plt.imshow((entropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
+plt.colorbar()
+plt.subplot(4,2,2)
+plt.imshow((anisotropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
 plt.colorbar()
 plt.tight_layout()
 plt.show()
