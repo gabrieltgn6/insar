@@ -200,30 +200,32 @@ VV = VV[crop_az[0]:crop_az[1], :]
 """
 def HSV_colormap_to_rgb(colormap, h, s, v):
     """
-    Convierte parámetros H, S, V a RGB, ajustando automáticamente
-    las dimensiones si provienen de datos recortados o multilooked.
+    Converts H, S, V to RGB using a colormap.
+    Automatically aligns dimensions if arrays are multilooked or cropped.
     """
-    # 1. Obtener los colores base del colormap
-    # colormap(h) devuelve (Filas_h, Cols_h, 4)
+    # Ensure h is in [0,1]
+    h = np.clip(h, 0, 1)
+
+    # Get RGB from colormap
     base_rgb = colormap(h)[..., :3]
-    
-    # 2. Sincronizar dimensiones
-    # Si 'base_rgb' es más grande que 'v', lo recortamos para que coincida
+
+    # Align dimensions
     if base_rgb.shape[:2] != v.shape[:2]:
         base_rgb = base_rgb[:v.shape[0], :v.shape[1], :]
         s_fixed = s[:v.shape[0], :v.shape[1]]
+        h = h[:v.shape[0], :v.shape[1]]
     else:
         s_fixed = s
 
-    # 3. Lógica HSV a RGB (Linear Interpolation)
-    # tmp = Blanco * (1-s) + Color * s
-    tmp = (1 - s_fixed)[..., np.newaxis] + s_fixed[..., np.newaxis] * base_rgb
-    
-    # 4. Escalar por el valor (V) y asegurar que v tenga el eje extra
+    # Linear interpolation HSV -> RGB
+    tmp = (1 - s_fixed)[..., np.newaxis] * np.ones(3) + s_fixed[..., np.newaxis] * base_rgb
+
+    # Ensure v has last axis
     if v.ndim == 2:
         v = v[..., np.newaxis]
-        
+
     return v * tmp
+
 
 #HH.shape
 
@@ -302,6 +304,7 @@ alpha3 = np.arccos(np.abs(U3[:,:,0]))
 # TODO: Complete
 alpha = (pr1*alpha1 + pr2*alpha2 + pr3*alpha3) 
 alpha = alpha * 180/np.pi   # [deg]
+#alpha = np.arccos(np.abs(pauli1)/pauli_l)
 
 alpha1= (alpha1*180)/np.pi
 alpha2 = (alpha2*180)/np.pi
@@ -369,6 +372,9 @@ ax.set_title("alpha3")
 
 plt.tight_layout()
 
+pauli_l = np.sqrt(np.abs(pauli1)**2 + np.abs(pauli2)**2 + np.abs(pauli3)**2)
+
+alpha = np.arccos(np.abs(pauli1)/pauli_l)
 plt.figure(figsize=(10,12))
 ax = plt.subplot(3,1,1)
 plt.imshow((entropy) , cmap = 'jet', vmin = 0, vmax = 1, aspect = 'auto', interpolation = 'nearest')
@@ -417,3 +423,71 @@ plt.colorbar(im4, ax=ax4)
 plt.tight_layout()
 plt.show()
 """
+
+
+# ===============================================================
+#                    HISTOGRAMS OF H, A, α
+# ===============================================================
+
+# Flatten valid pixels (exclude NaN or masked)
+entropy_flat = entropy[np.isfinite(entropy)].ravel()
+anisotropy_flat = anisotropy[np.isfinite(anisotropy)].ravel()
+alpha_flat = alpha[np.isfinite(alpha)].ravel()
+
+# Convert alpha to degrees if not already
+if alpha_flat.max() <= 1.5:  # if normalized between 0–1
+    alpha_flat = alpha_flat * 90
+
+# Define histogram style
+plt.figure(figsize=(15, 5))
+
+# ------------------ Entropy Histogram ------------------
+plt.subplot(1, 3, 1)
+plt.hist(entropy_flat, bins=50, range=(0, 1), color='royalblue', edgecolor='black', alpha=0.7)
+plt.title('Entropy (H)', fontsize=14)
+plt.xlabel('Entropy H', fontsize=12)
+plt.ylabel('Normalized Frequency', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.4)
+plt.gca().set_ylim(bottom=0)
+
+# ------------------ Anisotropy Histogram ------------------
+plt.subplot(1, 3, 2)
+plt.hist(anisotropy_flat, bins=50, range=(0, 1), color='orange', edgecolor='black', alpha=0.7)
+plt.title('Anisotropy (A)', fontsize=14)
+plt.xlabel('Anisotropy A', fontsize=12)
+plt.ylabel('Normalized Frequency', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.4)
+plt.gca().set_ylim(bottom=0)
+
+# ------------------ Mean Alpha Histogram ------------------
+plt.subplot(1, 3, 3)
+plt.hist(alpha_flat, bins=60, range=(0, 90), color='seagreen', edgecolor='black', alpha=0.7)
+plt.title('Mean Alpha Angle (°)', fontsize=14)
+plt.xlabel('Alpha (degrees)', fontsize=12)
+plt.ylabel('Normalized Frequency', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.4)
+plt.gca().set_ylim(bottom=0)
+
+plt.tight_layout()
+plt.show()
+
+
+# Filtrar valores válidos para evitar errores en el plot
+mask = np.isfinite(entropy) & np.isfinite(alpha)
+h_vals = entropy[mask].ravel()
+a_vals = alpha[mask].ravel() * 90  # Asegurar que esté en grados 0-90
+
+plt.figure(figsize=(8, 6))
+# Usamos hexbin para ver la densidad de puntos sin saturar el gráfico
+plt.hexbin(h_vals, a_vals, gridsize=100, cmap='viridis', mincnt=1)
+
+plt.title('Plano de Clasificación $H - \\alpha$', fontsize=14)
+plt.xlabel('Entropía (Despolarización $\\leftarrow$)', fontsize=12)
+plt.ylabel('Ángulo Alpha (Mecanismo de dispersión)', fontsize=12)
+plt.colorbar(label='Densidad de píxeles')
+plt.grid(True, linestyle='--', alpha=0.5)
+
+# Límites teóricos del plano H-alpha
+plt.xlim(0, 1)
+plt.ylim(0, 90)
+plt.show()
